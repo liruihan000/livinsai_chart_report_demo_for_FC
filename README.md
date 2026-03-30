@@ -39,44 +39,35 @@
 | 图表/PDF | Demo: LLM Code Execution 沙盒（matplotlib + reportlab）→ Prod: antvis MCP + Playwright |
 | 数据库 | PostgreSQL + PostGIS（通过 Livins Data Service API）|
 
-## 快速开始
+## 在线体验
 
-### 1. 安装依赖
+已部署到 GCP Cloud Run，直接访问：
+
+**https://livins-report-ootdxiumvq-ue.a.run.app**
+
+打开后在聊天框输入自然语言问题即可，例如：
+- "帮我分析各区域房源价格分布"
+- "曼哈顿一居室过去3个月的租金趋势"
+- "对比布鲁克林和曼哈顿的房源数量"
+
+Agent 会自动查询数据库、生成图表和 PDF 报告，右侧面板可预览和下载 PDF。
+
+## 本地开发
 
 ```bash
-# 后端
+# 安装依赖
 pip install -e ".[dev]"
+cd frontend && pnpm install && cd ..
 
-# 前端
-cd frontend && pnpm install
-```
-
-### 2. 配置环境变量
-
-```bash
-# 后端：复制 .env.example 并填入你的配置
-cp .env.example .env
-
-# 前端：复制 .env.local.example 并填入 API 地址
+# 配置环境变量
+cp .env.example .env          # 编辑填入 ANTHROPIC_API_KEY
 cp frontend/.env.local.example frontend/.env.local
-```
 
-### 3. 启动
-
-```bash
+# 一键启动前后端
 ./dev.sh
+# → Frontend: http://localhost:3000
+# → Backend:  http://localhost:8000
 ```
-
-启动后访问：
-- 前端：http://localhost:3000
-- 后端 API：http://localhost:8000
-
-### 4. 使用
-
-1. 打开浏览器访问 http://localhost:3000
-2. 在聊天框输入自然语言问题，例如："帮我分析各区域房源价格分布"
-3. Agent 会自动查询数据库、生成图表和 PDF 报告
-4. 右侧面板可预览和下载生成的 PDF
 
 ## 项目结构
 
