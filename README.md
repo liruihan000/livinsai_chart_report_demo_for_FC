@@ -84,6 +84,19 @@ cp frontend/.env.local.example frontend/.env.local
 │       ├── hooks/              # useChat, usePdf, useLocalStorage
 │       └── lib/                # API 调用、类型定义
 ├── tests/                      # 单元测试 + E2E 测试
-├── docs/                       # 架构文档
+├── docs/                       # 架构文档（所有设计细节）
 └── dev.sh                      # 一键启动前后端
 ```
+
+## 设计文档
+
+`docs/` 目录包含所有架构设计细节：
+
+- **[docs/architecture/overview.md](docs/architecture/overview.md)** — 系统全景、设计哲学、技术栈、依赖分层
+- **[docs/architecture/agent.md](docs/architecture/agent.md)** — Agent、Tools、Skills、Client 设计与数据流
+- **[docs/architecture/api.md](docs/architecture/api.md)** — API 端点、请求/响应格式、错误码
+- **[docs/architecture/frontend.md](docs/architecture/frontend.md)** — 前端架构、组件结构、状态管理、视觉设计
+- **[docs/architecture/decisions.md](docs/architecture/decisions.md)** — 设计决策记录（选了什么、为什么、否决了什么）
+- **[docs/data_schema.md](docs/data_schema.md)** — 数据库 Schema、表关系、常用 SQL 模式
+- **[docs/testing.md](docs/testing.md)** — 测试策略、Unit/E2E 分层
+- **[docs/deployment.md](docs/deployment.md)** — 部署配置、Docker、Cloud Run
