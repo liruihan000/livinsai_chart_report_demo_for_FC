@@ -6,6 +6,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Livins Report Agent',
   description: 'Housing data analysis and report generation',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

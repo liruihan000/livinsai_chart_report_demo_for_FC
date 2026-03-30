@@ -112,44 +112,14 @@ pytest tests/e2e/ -v
 |------|------|
 | `test_chat_then_download` | POST /chat 返回 file_id → GET /reports/{file_id} 下载成功（完整链路） |
 
-**E2E 测试模式**（和 rent_agent test_chat.py 一致）：
-```python
-# tests/e2e/test_chat_flow.py
-@pytest.fixture
-async def app_client():
-    app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        yield client
+### Frontend Contract Tests — API 响应匹配前端类型（test_frontend_contract.py）
 
-async def test_chat_success(app_client):
-    mock_response = {"messages": [AIMessage(content="曼哈顿一居室均价$3,500...")]}
-    with patch("livins_report_agent.dependencies.get_graph", new_callable=AsyncMock) as mock_get_graph:
-        mock_graph = AsyncMock()
-        mock_graph.ainvoke.return_value = mock_response
-        mock_get_graph.return_value = mock_graph
-        resp = await app_client.post("/chat", json={
-            "messages": [{"role": "user", "content": "分析曼哈顿租金"}]
-        })
-        assert resp.status_code == 200
-        assert "reply" in resp.json()
-```
-
-### Frontend Contract Tests — API 响应匹配前端类型
-
-**文件**：`tests/e2e/test_frontend_contract.py`
-
-**原则**：验证后端 API 响应 shape 与前端 `types.ts`（ChatResponse, FileRef）完全一致。前端静态部署、后端独立迭代，契约测试防止两端 drift。
+**原则**：验证后端 API 响应 shape 与前端 `types.ts`（ChatResponse, FileRef）完全一致。前端静态部署、后端独立迭代，契约测试防止两端 drift。只保留 chat_flow/report_download 未覆盖的契约验证。
 
 | 测试 | 验证 |
 |------|------|
 | `test_response_has_all_frontend_fields` | 响应包含 reply(str), session_id(str), files(null\|list)，字段名匹配前端 ChatResponse |
 | `test_response_files_shape_when_present` | files 数组元素包含 file_id + filename，匹配前端 FileRef |
-| `test_session_id_round_trip` | 前端发 session_id，服务端原样回传 |
-| `test_session_id_auto_generated_when_missing` | 首次请求无 session_id，服务端生成 UUID 返回 |
-| `test_multi_turn_messages` | 前端发完整 messages[] 历史（localStorage 模式），服务端正确处理 |
-| `test_report_endpoint_returns_404_for_unknown_file` | GET /reports/{file_id} 未知 ID → 404 |
-| `test_empty_content_rejected` | 空 content → 422 |
-| `test_missing_messages_rejected` | 缺 messages 字段 → 422 |
 
 ```bash
 pytest tests/e2e/test_frontend_contract.py -v

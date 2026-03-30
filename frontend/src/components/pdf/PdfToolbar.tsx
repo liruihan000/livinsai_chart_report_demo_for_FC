@@ -1,32 +1,45 @@
 'use client'
 
 interface PdfToolbarProps {
+  title: string
   onClose: () => void
-  onDownload: () => void
+  checkedCount: number
+  onDownloadChecked: () => void
 }
 
-/** PDF panel toolbar: download + close buttons */
-export function PdfToolbar({ onClose, onDownload }: PdfToolbarProps) {
+export function PdfToolbar({
+  title,
+  onClose,
+  checkedCount,
+  onDownloadChecked,
+}: PdfToolbarProps) {
   return (
     <div
-      className="flex items-center justify-between border-b px-4 py-2"
-      style={{ borderColor: 'var(--border)' }}
+      className="flex items-center justify-between gap-2 px-4 py-3"
+      style={{ borderBottom: '1px solid var(--border)' }}
     >
-      <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-        Report Preview
+      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        {title}
       </span>
-      <div className="flex gap-2">
-        <button
-          onClick={onDownload}
-          className="rounded-md px-2.5 py-1 text-xs transition-colors hover:opacity-80"
-          style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
-        >
-          Download
-        </button>
+      <div className="flex shrink-0 items-center gap-2">
+        {checkedCount > 0 && (
+          <button
+            onClick={onDownloadChecked}
+            className="text-xs transition-colors"
+            style={{
+              color: 'var(--bg-secondary)',
+              background: 'var(--accent)',
+              padding: '3px 10px',
+              borderRadius: '14px',
+            }}
+          >
+            下载选中 ({checkedCount})
+          </button>
+        )}
         <button
           onClick={onClose}
-          className="rounded-md px-2 py-1 text-xs transition-colors hover:opacity-80"
-          style={{ color: 'var(--text-muted)' }}
+          className="text-sm transition-colors"
+          style={{ color: 'var(--text-muted)', padding: '2px 4px' }}
         >
           ✕
         </button>

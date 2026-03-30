@@ -50,6 +50,45 @@ POST /chat
 | session_id | string | 会话ID（浏览器生成，服务端回传） |
 | files | array \| null | 生成的文件列表（file_id + filename），未生成时为 null 或空数组 |
 
+### Chat Stream
+
+SSE 流式端点，实时推送 Agent 工具调用步骤和文本生成。前端用此端点替代 `/chat` 实现流式体验。
+
+```
+POST /chat/stream
+Content-Type: application/json → text/event-stream (SSE)
+```
+
+**Request**：与 `/chat` 相同。
+
+**SSE Events**：
+
+| event | data | 说明 |
+|-------|------|------|
+| `session` | `{"session_id": "uuid"}` | 连接建立，返回 session_id |
+| `tool_start` | `{"name": "query_database", "label": "查询数据库", "input": "SELECT ..."}` | 工具调用开始 |
+| `tool_end` | `{"name": "query_database", "label": "查询数据库"}` | 工具调用完成 |
+| `token` | `{"content": "根据"}` | LLM 文本流式输出（逐 token） |
+| `done` | `{"files": [...]}` | Agent 执行完毕，附带生成的文件列表 |
+| `error` | `{"detail": "..."}` | 执行异常 |
+
+**SSE 格式**：
+```
+event: tool_start
+data: {"name":"query_database","label":"查询数据库","input":"SELECT borough, AVG(price)..."}
+
+event: tool_end
+data: {"name":"query_database","label":"查询数据库"}
+
+event: token
+data: {"content":"根据查询结果"}
+
+event: done
+data: {"files":[{"file_id":"file_xxx","filename":"report.pdf"}]}
+```
+
+**实现**：后端使用 LangGraph `astream_events(version="v2")` 捕获 `on_tool_start`/`on_tool_end`/`on_chat_model_stream` 事件，通过 FastAPI `StreamingResponse` 以 `text/event-stream` 格式推送。
+
 ### Report Download
 
 从 Anthropic Files API 流式转发文件（Demo 阶段，服务端不缓存）。

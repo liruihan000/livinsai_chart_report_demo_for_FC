@@ -2,25 +2,37 @@
 
 import { MessageList } from './MessageList'
 import { InputBar } from './InputBar'
-import type { ChatMessage } from '@/lib/types'
+import type { ChatMessage, ToolStep } from '@/lib/types'
 
 interface ChatContainerProps {
   messages: ChatMessage[]
   isLoading: boolean
+  activeToolSteps: ToolStep[]
+  thinkingText: string
+  streamingContent: string
   onSendMessage: (content: string) => Promise<void>
   onViewReport: (fileId: string, filename?: string) => Promise<void>
 }
 
-/** Orchestrator: combines MessageList + InputBar */
 export function ChatContainer({
   messages,
   isLoading,
+  activeToolSteps,
+  thinkingText,
+  streamingContent,
   onSendMessage,
   onViewReport,
 }: ChatContainerProps) {
   return (
-    <div className="flex flex-1 flex-col" style={{ borderRight: '1px solid var(--border)' }}>
-      <MessageList messages={messages} isLoading={isLoading} onViewReport={onViewReport} />
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <MessageList
+        messages={messages}
+        isLoading={isLoading}
+        activeToolSteps={activeToolSteps}
+        thinkingText={thinkingText}
+        streamingContent={streamingContent}
+        onViewReport={onViewReport}
+      />
       <InputBar onSend={onSendMessage} disabled={isLoading} />
     </div>
   )

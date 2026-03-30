@@ -119,7 +119,25 @@
 
 详见 `docs/architecture/frontend.md`。
 
-## 8. Protocol-based Client，不用继承
+## 8. SSE 流式推送工具调用步骤
+
+**选择**：`POST /chat/stream` SSE 端点 + LangGraph `astream_events(version="v2")`，实时推送 `tool_start`/`tool_end`/`token`/`done` 事件
+
+**否决方案**：
+- WebSocket：双向通信，但本场景只需服务端→客户端单向推送，SSE 更简单
+- 轮询：延迟高，浪费请求
+- 修改 `/chat` 返回中间步骤：破坏现有接口，且无法实时推送
+
+**原因**：
+- **用户体验**：Agent 执行报表生成通常 10-30 秒，纯等待（三个跳动圆点）体验差，需要实时反馈当前步骤
+- **调试可见性**：前端实时显示工具调用（SQL 语句、代码片段），方便定位 SQL 失败等问题
+- **向后兼容**：保留原 `POST /chat` 端点不变，新增 `/chat/stream`
+- **无额外依赖**：FastAPI `StreamingResponse` + `text/event-stream`，不需要 sse-starlette 等库
+- **前端解析简单**：`fetch` + `ReadableStream` 解析 SSE，通过回调函数分发事件
+
+**工具步骤生命周期**：仅在流式过程中显示（`activeToolSteps`），完成后清空。历史消息不保留工具步骤，只存最终文本 — 避免 localStorage 膨胀，保持消息结构简洁。
+
+## 9. Protocol-based Client，不用继承
 
 **选择**：`DataClientProtocol(Protocol)` 结构化类型
 

@@ -37,6 +37,14 @@ SYSTEM_PROMPT = """\
 - bedrooms = 0 表示 Studio
 - 默认只分析 status = 'open' 的在架房源
 - 用中文回复用户
+- 图表和PDF报告中的所有文字必须用英文（沙盒没有中文字体，中文会显示为乱码■□）
+
+## execute_code 硬规则（必须遵守）
+- **严禁多次调用 execute_code**。每次调用都是独立沙盒，文件不互通。
+- **每次分析必须生成 PDF 报告**，不能只生成图表。PDF 是最终交付物。
+- 图表 + PDF 在 **同一次 execute_code** 中完成：先 plt.savefig() → 再 reportlab Image() 引用 → doc.build()。
+- 所有输出文件保存到 `os.getenv('OUTPUT_DIR', '.')`。
+- 只调用一次 execute_code，把所有图表和 PDF 都在一个代码块里生成。
 """
 
 

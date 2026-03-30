@@ -32,7 +32,7 @@ Skills (索引在load_skill docstring，内容按需加载):
 
 浏览器 `localStorage` 管理对话历史，服务端无状态（与 rent_agent 一致）。
 
-- 前端每轮：`localStorage` 读历史 → 追加新消息 → POST `/chat` 发送完整 `messages[]`
+- 前端每轮：`localStorage` 读历史 → 追加新消息 → POST `/chat/stream` SSE 流式推送
 - 服务端：`messages` → LangChain `HumanMessage`/`AIMessage` → Agent，不存储
 - Session ID：浏览器 `crypto.randomUUID()`，存 `localStorage`，随请求发送
 - 后续升级：需要跨设备同步时加 LangGraph Checkpointer
@@ -43,8 +43,10 @@ Skills (索引在load_skill docstring，内容按需加载):
 
 Next.js 15 (App Router, `output: 'export'`) + React 19 + Tailwind CSS v4。纯静态导出，与 FastAPI 后端分离部署。
 
-- **Stack**：Next.js 15 / React 19 / TypeScript 5 / Tailwind v4 / motion / @react-pdf-viewer/core / pnpm
-- **布局**：单页 split-panel — 左 Chat（60%）+ 右 PDF 预览（40%，有报告时滑入）
+- **Stack**：Next.js 15 / React 19 / TypeScript 5 / Tailwind v4 / react-markdown / @react-pdf-viewer/core / pnpm
+- **风格**：Warm Minimal（与 rent_agent 一致）— DM Sans 字体、暖白背景 #f8f7f5、860px 居中
+- **布局**：单页 split-panel — 左 Chat（58%）+ 右 PDF 预览（42%，有报告时展开）
+- **流式**：SSE 流式推送工具调用步骤（tool_start/tool_end）+ 文本逐 token 输出，详见 `decisions.md#8`
 - **状态**：useState + custom hooks（useChat / useLocalStorage / usePdf），无 Redux/Zustand
 - **PDF**：@react-pdf-viewer/core 浏览器内渲染，blob URL 缓存，toolbar（缩放/翻页/下载）
 - **测试**：Vitest + React Testing Library（组件/hook 单元测试，无浏览器 E2E）

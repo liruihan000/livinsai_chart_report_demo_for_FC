@@ -1,39 +1,50 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { MessageBubble } from './MessageBubble'
-import { StreamingDots } from './StreamingDots'
-import type { ChatMessage } from '@/lib/types'
+import { MessageBubble, StreamingMessage } from './MessageBubble'
+import type { ChatMessage, ToolStep } from '@/lib/types'
 
 interface MessageListProps {
   messages: ChatMessage[]
   isLoading: boolean
+  activeToolSteps: ToolStep[]
+  thinkingText: string
+  streamingContent: string
   onViewReport: (fileId: string, filename?: string) => Promise<void>
 }
 
-/** Scrollable message list with auto-scroll to bottom */
-export function MessageList({ messages, isLoading, onViewReport }: MessageListProps) {
+export function MessageList({
+  messages,
+  isLoading,
+  activeToolSteps,
+  thinkingText,
+  streamingContent,
+  onViewReport,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isLoading])
+  }, [messages, isLoading, activeToolSteps, streamingContent])
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-4">
-      {messages.length === 0 && (
+    <div className="flex-1 overflow-y-auto pt-10 pb-4" style={{ scrollBehavior: 'smooth' }}>
+      <div className="mx-auto w-full px-6" style={{ maxWidth: '768px' }}>
+      {messages.length === 0 && !isLoading && (
         <div className="flex h-full items-center justify-center">
-          <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-display)' }}
-            className="text-lg">
-            Ask me about housing data...
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            输入问题，开始分析房源数据
           </p>
         </div>
       )}
       {messages.map((msg, i) => (
         <MessageBubble key={i} message={msg} onViewReport={onViewReport} />
       ))}
-      {isLoading && <StreamingDots />}
+      {isLoading && (
+        <StreamingMessage toolSteps={activeToolSteps} thinkingText={thinkingText} content={streamingContent} />
+      )}
       <div ref={bottomRef} />
+      </div>
     </div>
   )
 }

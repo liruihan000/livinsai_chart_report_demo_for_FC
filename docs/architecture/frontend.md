@@ -31,6 +31,7 @@ frontend/
 │   │   │   ├── MessageList.tsx      # 消息列表（虚拟滚动 if needed）
 │   │   │   ├── MessageBubble.tsx    # 单条消息（支持 Markdown 渲染）
 │   │   │   ├── InputBar.tsx         # 输入框 + 发送按钮
+│   │   │   ├── ToolSteps.tsx        # 工具调用步骤（流式过程中展示，完成后消失）
 │   │   │   └── StreamingDots.tsx    # Agent 思考中的加载动画
 │   │   ├── pdf/
 │   │   │   ├── PdfPanel.tsx         # PDF 预览面板（右侧滑入）
@@ -97,19 +98,25 @@ useState + Custom Hooks，无外部状态库
 
 ```typescript
 interface UseChatReturn {
-  messages: ChatMessage[]        // 当前对话消息
+  messages: ChatMessage[]        // 当前对话消息（已完成的）
   isLoading: boolean             // Agent 是否在响应
+  activeToolSteps: ToolStep[]    // 流式过程中的工具步骤（处理完成后清空）
+  streamingContent: string       // 流式过程中的部分文本（处理完成后清空）
   sendMessage: (content: string) => Promise<void>
   clearHistory: () => void       // 清空 localStorage + 重置 state
   files: FileRef[] | null        // 最新生成的文件列表 [{file_id, filename}]
 }
 ```
 
-**流程**：
+**流程**（SSE 流式）：
 1. 组件 mount → `useLocalStorage` 读取历史消息 + session_id
-2. 用户发送消息 → 追加到 messages → POST `/chat` 发送完整 messages[]
-3. 收到响应 → 追加 AI 消息 → 写回 localStorage
-4. 如果响应含 `files` → 存文件引用（file_id + filename）→ 触发 PDF 面板展开
+2. 用户发送消息 → 追加到 messages → POST `/chat/stream` SSE 连接
+3. 收到 `tool_start`/`tool_end` → 更新 `activeToolSteps`（实时显示工具调用进度）
+4. 收到 `token` → 追加到 `streamingContent`（逐字显示 LLM 回复）
+5. 收到 `done` → 将完整文本存入 messages + 写回 localStorage，清空 activeToolSteps/streamingContent
+6. 如果 `done` 含 `files` → 存文件引用 → 触发 PDF 面板展开
+
+**工具步骤生命周期**：`activeToolSteps` 和 `streamingContent` 仅在流式过程中有值，完成后归零。已完成的消息（`messages[]`）中不保留工具步骤 — 历史消息只存最终文本。
 
 ### useLocalStorage Hook
 
@@ -145,8 +152,11 @@ interface UsePdfReturn {
 // lib/api.ts
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-async function chatRequest(messages: ChatMessage[], sessionId: string): Promise<ChatResponse>
-// POST /chat → { messages, session_id } → { reply, session_id, files? }
+async function chatStream(messages, sessionId, callbacks): Promise<void>
+// POST /chat/stream → SSE 流，通过 callbacks 实时回调 tool_start/tool_end/token/done
+
+async function chatRequest(messages, sessionId): Promise<ChatResponse>
+// POST /chat → { messages, session_id } → { reply, session_id, files? }（保留，向后兼容）
 
 async function fetchReport(fileId: string): Promise<Blob>
 // GET /reports/{file_id} → PDF blob（服务端从 Anthropic Files API 流式转发）
@@ -154,6 +164,8 @@ async function fetchReport(fileId: string): Promise<Blob>
 async function healthCheck(): Promise<boolean>
 // GET /health → { status: 'ok' }
 ```
+
+**SSE 流读取**：`chatStream` 使用 `fetch` + `ReadableStream` 解析 SSE 事件，通过 `StreamCallbacks` 接口回调（`onToolStart`/`onToolEnd`/`onToken`/`onDone`/`onError`）。
 
 **错误处理**：
 - 网络错误 → Toast 提示 "连接失败，请检查服务端"
@@ -174,70 +186,77 @@ async function healthCheck(): Promise<boolean>
 
 ## Visual Design Direction
 
-### Aesthetic：Editorial Luxury — 数据杂志风
+### Aesthetic：Warm Minimal — 与 rent_agent 一致
 
-适合房源数据分析场景：专业、精致、有质感。
+暖色极简风格，与 rent_agent 前端保持视觉一致性。浅色背景、暖灰色调、DM Sans 字体。
 
 ### Typography（Google Fonts via next/font）
 
 | 用途 | 字体 | 风格 |
 |---|---|---|
-| Headings / Logo | **Playfair Display** | Serif，高对比、editorial 气质 |
-| Body / Messages | **Outfit** | Geometric sans，现代干净、可读性强 |
+| Display / Logo | **Space Grotesk** | Geometric sans，现代标题 |
+| Body / Messages | **DM Sans** | Humanist sans，温暖可读（与 rent_agent 一致） |
 | Code / Data | **JetBrains Mono** | Monospace，SQL/数据展示 |
 
-### Color Palette（CSS Variables）
+### Color Palette（CSS Variables，与 rent_agent 对齐）
 
 ```css
 :root {
-  /* Base — 深色背景 */
-  --bg-primary: #0f0f14;          /* 近黑，微冷 */
-  --bg-secondary: #1a1a24;        /* 卡片/面板背景 */
-  --bg-tertiary: #24243a;         /* 输入框/hover 态 */
+  --bg-primary: #f8f7f5;          /* 暖白背景 */
+  --bg-secondary: #ffffff;        /* 卡片/面板/输入框 */
+  --bg-tertiary: #faf9f7;         /* 次级背景 */
 
-  /* Text */
-  --text-primary: #f0ebe3;        /* 暖白/奶油色 */
-  --text-secondary: #9a9aad;      /* 次要文字 */
-  --text-muted: #5a5a6e;          /* 占位符/时间戳 */
+  --text-primary: #2d2b28;        /* 深炭文字 */
+  --text-secondary: #7a7672;      /* 次要文字 */
+  --text-muted: #a8a49f;          /* 占位符/标签 */
 
-  /* Accent — 琥珀金 */
-  --accent: #c8956c;              /* 主强调色 */
-  --accent-hover: #d4a574;        /* Hover 态 */
-  --accent-subtle: rgba(200, 149, 108, 0.12); /* 背景高亮 */
+  --accent: #4a4743;              /* 按钮/强调 */
+  --accent-subtle: #f0ece4;       /* 用户消息气泡背景 */
 
-  /* Semantic */
-  --success: #5cb389;
-  --error: #c75f5f;
-  --border: rgba(255, 255, 255, 0.06);
+  --border: #e8e4de;              /* 分割线 */
+  --border-light: #ede9e2;        /* 代码块/表格背景 */
+
+  --shadow-sm: 0 2px 14px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 18px rgba(0,0,0,0.08);
 }
 ```
-
-**Light theme**：反转 bg/text，accent 保持琥珀金。CSS variables 切换即可。
 
 ### Motion Design
 
 | 交互 | 动画 |
 |---|---|
-| 消息出现 | `fadeInUp` — opacity 0→1, y 12→0, stagger 50ms |
-| PDF 面板展开 | 右侧 `slideInRight` — x 100%→0, width 0→40% |
-| 发送按钮 | hover scale 1.05, active scale 0.95 |
-| 加载指示器 | 3 个圆点 bounce，stagger 100ms |
-| 清除对话 | messages `fadeOut`，然后 empty state `fadeIn` |
+| 消息出现 | `fade-up` 0.22s — translateY 8→0, opacity 0→1（与 rent_agent 一致） |
+| 加载指示器 | 3 点 bounce，stagger 150ms，1.3s 周期（无工具步骤时显示） |
+| 工具步骤 spinner | `spin` 0.8s linear infinite，当前执行步骤旋转指示 |
+| 输入框 | textarea 高度自适应，最大 110px |
 
-### 背景氛围
+### 关键视觉元素
 
-- 主背景：细微 noise texture overlay（`opacity: 0.03`），增加质感
-- Chat 区域：左侧极细竖线装饰（editorial 风格的栏线）
-- PDF 面板：微弱 inner shadow，制造深度感
+- 860px max-width 居中容器（与 rent_agent 一致）
+- 圆角气泡（22px radius，用户消息右下角 5px 方角）
+- 圆形发送按钮（36px，#9b9690，白色箭头图标）
+- Assistant 头像（33px 圆形，#e8e3db 背景，人形 SVG 图标）
+- Markdown 渲染：react-markdown + remark-gfm，样式与 rent_agent 的 marked.js 输出一致
+- 3px 细滚动条，rgba(0,0,0,0.08)
 
 ## Component Detail
 
-### MessageBubble
+### MessageBubble / StreamingMessage
 
 - **User 消息**：右对齐，accent 背景，圆角
-- **Agent 消息**：左对齐，secondary 背景，支持 Markdown（react-markdown + remark-gfm）
+- **Agent 消息（已完成）**：左对齐，Markdown 渲染，不含工具步骤
+- **Agent 消息（流式中，StreamingMessage）**：左对齐，实时显示 ToolSteps + 逐字文本
 - **Report 链接**：Agent 消息内嵌 "📄 查看报告" 按钮，点击触发 PDF 面板
 - **SQL 展示**：折叠的 `<details>` 块，JetBrains Mono 渲染
+
+### ToolSteps（流式过程中显示，完成后消失）
+
+- 可折叠步骤列表，点击展开/收起
+- 每个步骤：工具图标（数据库/代码/书本）+ 中文标签 + 输入摘要
+- **进行中**：旋转 spinner + "查询数据库 (1/3)"
+- **全部完成**：绿色勾 + "完成 3 个步骤"
+- 展开后显示每步详情（SQL 语句、代码片段等，monospace 字体）
+- 仅在 `isLoading` 期间渲染，完成后不保留在历史消息中
 
 ### InputBar
 

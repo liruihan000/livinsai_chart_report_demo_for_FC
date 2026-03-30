@@ -129,7 +129,7 @@ buildings b JOIN building_isochrones bi ON bi.building_id = b.id
 | 分析需求 | SQL 模式 |
 |----------|----------|
 | 租金趋势 | `SELECT DATE_TRUNC('month', listed_at), AVG(price) ... GROUP BY 1` |
-| 区域对比 | `SELECT borough, AVG(price), MIN(price), MAX(price) ... GROUP BY borough` |
+| 区域对比 | `SELECT INITCAP(LOWER(b.borough)) AS borough, AVG(l.price)::int ... WHERE LOWER(b.borough) IN ('manhattan','brooklyn','queens','bronx','staten island') GROUP BY 1` |
 | 折扣分析 | `SELECT borough, COUNT(*), AVG(max_discount) ... WHERE max_discount > 0 GROUP BY borough` |
 | ML特征相关性 | `SELECT condition_level, AVG(aesthetic_score), AVG(price) ... GROUP BY condition_level` |
 | Top N | `SELECT ... ORDER BY price ASC LIMIT N` |
@@ -140,3 +140,52 @@ buildings b JOIN building_isochrones bi ON bi.building_id = b.id
 - `bedrooms = 0` 表示 Studio
 - `status = 'open'` 是在架房源，分析时通常只看 open 状态
 - JSONB 字段（amenities等）用 `->>`/`@>` 操作符查询
+- `neighborhood` 字段可能为 NULL 或不够详细，优先用 `borough` 做区域分析
+- 查询结果为空不代表 SQL 有错，可能确实没有符合条件的数据——不要无意义地重试相同查询
+- **borough 大小写不一致**：数据库中同时存在 `Manhattan` 和 `manhattan`，查询时必须用 `LOWER(borough)` 或 `ILIKE`
+- **数据库包含非 NYC 数据**（LA, Chicago, NJ 等），NYC 分析时需加 `WHERE LOWER(b.borough) IN ('manhattan','brooklyn','queens','bronx','staten island')`
+
+## NYC 区域映射
+
+用户提到的区域名称需要映射到 `buildings.borough` 或 `buildings.neighborhood` 字段。
+
+### Borough 映射
+| 用户说 | borough 值 |
+|--------|-----------|
+| "New York" / "NYC" / "NY" | 查全部5个区 |
+| "Manhattan" / "曼哈顿" | Manhattan |
+| "Brooklyn" / "布鲁克林" | Brooklyn |
+| "Queens" / "皇后区" | Queens |
+| "Bronx" / "布朗克斯" | Bronx |
+| "Staten Island" / "斯坦顿岛" | Staten Island |
+
+### 常见 Neighborhood 缩写
+| 缩写 | 全称 | Borough |
+|------|------|---------|
+| UES | Upper East Side | Manhattan |
+| UWS | Upper West Side | Manhattan |
+| LIC | Long Island City | Queens |
+| Bed-Stuy | Bedford-Stuyvesant | Brooklyn |
+| FiDi | Financial District | Manhattan |
+| DUMBO | DUMBO | Brooklyn |
+| Hell's Kitchen | Hell's Kitchen | Manhattan |
+
+### 预算 → 区域建议
+| 预算 | 推荐区域 |
+|------|----------|
+| $4,000+/月 | Chelsea, Greenwich Village, UES, DUMBO, Williamsburg |
+| $2,500–$4,000/月 | Hell's Kitchen, East Village, Astoria, Park Slope |
+| $2,500以下/月 | Crown Heights, Ridgewood, Washington Heights, Sunset Park |
+
+### 查询示例
+```sql
+-- 按 neighborhood 分析（注意可能有 NULL）
+SELECT b.neighborhood, AVG(l.price)::int AS avg_price, COUNT(*) AS cnt
+FROM listings l JOIN buildings b ON l.building_id = b.id
+WHERE b.borough = 'Manhattan' AND b.neighborhood IS NOT NULL
+GROUP BY b.neighborhood
+ORDER BY avg_price DESC
+
+-- 按缩写查询
+WHERE b.neighborhood ILIKE '%upper east%'
+```

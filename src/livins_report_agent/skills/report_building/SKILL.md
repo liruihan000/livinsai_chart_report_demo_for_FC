@@ -9,6 +9,39 @@ description: "报告结构设计与PDF布局规范"
 - 数据分析和图表生成完成后，需要组装最终报告
 - 用户要求生成 PDF 报告
 
+## CRITICAL: Charts + PDF in ONE execute_code call
+Each `execute_code` call runs in a **separate sandbox** — files from one call are NOT available in another.
+To embed charts in a PDF, you MUST generate charts AND build the PDF in the **same single execute_code call**:
+
+```python
+import os, matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from reportlab.platypus import SimpleDocTemplate, Image, Paragraph, Spacer
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+
+output_dir = os.getenv('OUTPUT_DIR', '.')
+
+# Step 1: Generate charts to local disk (inside sandbox)
+plt.figure(figsize=(10,6))
+plt.bar(...)
+plt.savefig('chart1.png', dpi=150, bbox_inches='tight')
+plt.close()
+
+# Step 2: Build PDF referencing local chart files
+doc = SimpleDocTemplate(os.path.join(output_dir, 'report.pdf'), pagesize=A4)
+elements = [...]
+elements.append(Image('chart1.png', width=16*cm, height=10*cm))  # local file, same sandbox
+doc.build(elements)
+```
+
+**Wrong approach** (will fail — charts from previous call don't exist):
+```python
+# Call 1: execute_code → save charts
+# Call 2: execute_code → build PDF with Image('chart1.png')  ← FILE NOT FOUND!
+```
+
 ## Report Structure
 
 ### Standard Sections
@@ -98,6 +131,8 @@ doc.build(elements)
 ```
 
 ## Rules
+- **IMPORTANT: All text in PDF must be in English** — the sandbox reportlab only has Latin fonts (Helvetica/Courier), Chinese characters will render as ■
+- Agent 回复用户时用中文，但 PDF 内容必须用英文
 - 报告长度：1-3 页（简单分析 1 页，综合报告 2-3 页）
 - 每张图表必须配文字说明
 - 数字格式：价格用 `$X,XXX`，百分比保留 1 位小数

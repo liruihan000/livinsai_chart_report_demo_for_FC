@@ -1,13 +1,15 @@
-import { Playfair_Display, Outfit, JetBrains_Mono } from 'next/font/google'
+import { DM_Sans, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 
-export const displayFont = Playfair_Display({
+export const displayFont = Space_Grotesk({
   subsets: ['latin'],
+  weight: ['500', '700'],
   variable: '--font-display',
   display: 'swap',
 })
 
-export const bodyFont = Outfit({
+export const bodyFont = DM_Sans({
   subsets: ['latin'],
+  weight: ['300', '400', '500'],
   variable: '--font-body',
   display: 'swap',
 })

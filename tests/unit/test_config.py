@@ -4,7 +4,7 @@ from livins_report_agent.config import Settings
 
 
 def test_default_settings():
-    s = Settings(anthropic_api_key="test")
+    s = Settings(anthropic_api_key="test", _env_file=None)
     assert s.use_mock_client is True
     assert s.max_agent_steps == 15
     assert s.api_port == 8000

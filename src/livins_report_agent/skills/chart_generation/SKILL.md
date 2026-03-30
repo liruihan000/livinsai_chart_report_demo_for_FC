@@ -34,6 +34,7 @@ description: "图表类型选择与样式规范"
 - Tick labels: 9pt
 
 ### Layout Rules
+- **IMPORTANT: All text in charts must be in English** — the sandbox matplotlib only has Latin fonts, Chinese characters will render as □
 - Always include title and axis labels
 - Use `plt.tight_layout()` to prevent label clipping
 - Set figure size: `figsize=(10, 6)` for single chart, `figsize=(12, 8)` for complex

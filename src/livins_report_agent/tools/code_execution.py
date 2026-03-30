@@ -30,18 +30,27 @@ def create_code_execution_tool(api_key: str, model: str = "claude-haiku-4-5-2025
         """
         import anthropic
 
+        logger.info("execute_code ← code (%d chars):\n%.200s%s",
+                     len(code), code, "..." if len(code) > 200 else "")
+
         client = anthropic.Anthropic(api_key=api_key)
 
         try:
             resp = client.beta.messages.create(
                 model=model,
-                max_tokens=4096,
+                max_tokens=16000,
                 betas=["code-execution-2025-05-22"],
                 tools=[{"type": "code_execution_20250522", "name": "code_execution"}],
                 messages=[
                     {
                         "role": "user",
-                        "content": f"请直接执行以下Python代码，不要修改：\n```python\n{code}\n```",
+                        "content": (
+                            "Execute the following Python code. "
+                            "If it fails, fix the error and retry until it succeeds. "
+                            "Do not change the intent — only fix bugs (imports, paths, syntax). "
+                            "All output files MUST be saved to os.getenv('OUTPUT_DIR', '.').\n"
+                            f"```python\n{code}\n```"
+                        ),
                     }
                 ],
             )
@@ -74,6 +83,16 @@ def create_code_execution_tool(api_key: str, model: str = "claude-haiku-4-5-2025
                                         filename = match.group(0)
                                         break
                         files.append({"file_id": item.file_id, "filename": filename})
+
+        logger.info(
+            "execute_code → rc=%d, files=%d, stdout=%d chars, stderr=%d chars",
+            return_code, len(files), len(stdout), len(stderr),
+        )
+        if stderr:
+            logger.warning("execute_code stderr:\n%.500s", stderr)
+        if files:
+            for f in files:
+                logger.info("  file: %s (id=%s)", f["filename"], f["file_id"])
 
         return json.dumps({
             "return_code": return_code,
