@@ -46,7 +46,7 @@
 
 已部署到 GCP Cloud Run，直接访问：
 
-**https://livins-report-ootdxiumvq-ue.a.run.app**
+**[https://livins-report-ootdxiumvq-ue.a.run.app](https://livins-report-593342552993.us-east1.run.app/)**
 
 打开后在聊天框输入自然语言问题即可，例如：
 - "帮我分析各区域房源价格分布"
