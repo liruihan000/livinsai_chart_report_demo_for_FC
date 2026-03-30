@@ -199,21 +199,19 @@ export function StreamingMessage({
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </div>
         ) : (
-          toolSteps.length === 0 && !thinkingText && (
-            <div className="flex items-center gap-1 pt-1">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="inline-block h-1.5 w-1.5 rounded-full animate-bounce"
-                  style={{
-                    background: 'var(--text-muted)',
-                    animationDelay: `${i * 150}ms`,
-                    animationDuration: '1.3s',
-                  }}
-                />
-              ))}
-            </div>
-          )
+          <div className="flex items-center gap-1 pt-1">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="inline-block h-1.5 w-1.5 rounded-full animate-bounce"
+                style={{
+                  background: 'var(--text-muted)',
+                  animationDelay: `${i * 150}ms`,
+                  animationDuration: '1.3s',
+                }}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

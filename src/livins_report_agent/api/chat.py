@@ -54,14 +54,9 @@ def _extract_files(messages: list) -> list[dict]:
                 tool_result = json.loads(msg.content)
                 batch = tool_result.get("files", [])
                 if batch:
-                    # Only keep PDF files; charts are intermediate artifacts
-                    pdfs = [
+                    last_files = [
                         {"file_id": f["file_id"], "filename": f["filename"]}
                         for f in batch
-                        if f["filename"].lower().endswith(".pdf")
-                    ]
-                    last_files = pdfs if pdfs else [
-                        {"file_id": batch[-1]["file_id"], "filename": batch[-1]["filename"]}
                     ]
             except (json.JSONDecodeError, KeyError):
                 pass
