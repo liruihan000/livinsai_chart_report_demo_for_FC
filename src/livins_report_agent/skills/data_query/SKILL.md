@@ -124,15 +124,100 @@ buildings b
 buildings b JOIN building_isochrones bi ON bi.building_id = b.id
 ```
 
-### 常用查询模式
+### 常用查询模式（已验证可直接使用）
 
-| 分析需求 | SQL 模式 |
-|----------|----------|
-| 租金趋势 | `SELECT DATE_TRUNC('month', listed_at), AVG(price) ... GROUP BY 1` |
-| 区域对比 | `SELECT INITCAP(LOWER(b.borough)) AS borough, AVG(l.price)::int ... WHERE LOWER(b.borough) IN ('manhattan','brooklyn','queens','bronx','staten island') GROUP BY 1` |
-| 折扣分析 | `SELECT borough, COUNT(*), AVG(max_discount) ... WHERE max_discount > 0 GROUP BY borough` |
-| ML特征相关性 | `SELECT condition_level, AVG(aesthetic_score), AVG(price) ... GROUP BY condition_level` |
-| Top N | `SELECT ... ORDER BY price ASC LIMIT N` |
+#### 1. 各区租金汇总
+```sql
+SELECT
+    INITCAP(LOWER(b.borough)) AS borough,
+    COUNT(*) AS total_listings,
+    AVG(l.price)::int AS avg_price,
+    MIN(l.price) AS min_price,
+    MAX(l.price) AS max_price
+FROM listings l
+JOIN buildings b ON l.building_id = b.id
+WHERE l.status = 'open'
+    AND LOWER(b.borough) IN ('manhattan','brooklyn','queens','bronx','staten island')
+GROUP BY LOWER(b.borough)
+ORDER BY avg_price DESC
+```
+
+#### 2. 按户型分析（bedrooms 分组）
+```sql
+SELECT
+    INITCAP(LOWER(b.borough)) AS borough,
+    l.bedrooms,
+    COUNT(*) AS count,
+    AVG(l.price)::int AS avg_price
+FROM listings l
+JOIN buildings b ON l.building_id = b.id
+WHERE l.status = 'open'
+    AND LOWER(b.borough) IN ('manhattan','brooklyn','queens','bronx','staten island')
+GROUP BY LOWER(b.borough), l.bedrooms
+ORDER BY LOWER(b.borough), l.bedrooms
+```
+> 注意：用 `l.bedrooms` 直接分组（0=Studio, 1=1BR, 2=2BR...），不需要 CASE WHEN。在结果里再映射名称。
+
+#### 3. 月度租金趋势
+```sql
+SELECT
+    DATE_TRUNC('month', l.listed_at)::date AS month,
+    INITCAP(LOWER(b.borough)) AS borough,
+    AVG(l.price)::int AS avg_price,
+    COUNT(*) AS count
+FROM listings l
+JOIN buildings b ON l.building_id = b.id
+WHERE l.status = 'open'
+    AND LOWER(b.borough) IN ('manhattan','brooklyn','queens','bronx','staten island')
+    AND l.listed_at >= CURRENT_DATE - INTERVAL '6 months'
+GROUP BY 1, LOWER(b.borough)
+ORDER BY 1, borough
+```
+
+#### 4. 折扣分析
+```sql
+SELECT
+    INITCAP(LOWER(b.borough)) AS borough,
+    COUNT(*) AS total_listings,
+    COUNT(CASE WHEN l.max_discount > 0 THEN 1 END) AS discounted_count,
+    ROUND(100.0 * COUNT(CASE WHEN l.max_discount > 0 THEN 1 END) / COUNT(*), 1) AS discount_pct,
+    AVG(CASE WHEN l.max_discount > 0 THEN l.max_discount END)::int AS avg_discount
+FROM listings l
+JOIN buildings b ON l.building_id = b.id
+WHERE l.status = 'open'
+    AND LOWER(b.borough) IN ('manhattan','brooklyn','queens','bronx','staten island')
+GROUP BY LOWER(b.borough)
+ORDER BY discount_pct DESC
+```
+
+#### 5. ML 特征 vs 价格
+```sql
+SELECT
+    ml.overall_condition_level AS condition_level,
+    COUNT(*) AS count,
+    AVG(l.price)::int AS avg_price,
+    ROUND(AVG(ml.aesthetic_score)::numeric, 1) AS avg_aesthetic
+FROM ml_listings ml
+JOIN listings l ON ml.listing_id = l.id
+WHERE l.status = 'open'
+GROUP BY ml.overall_condition_level
+ORDER BY condition_level
+```
+
+#### 6. Top N 最便宜/最贵
+```sql
+SELECT l.id, b.borough, b.neighborhood, l.price, l.bedrooms, l.sqft
+FROM listings l JOIN buildings b ON l.building_id = b.id
+WHERE l.status = 'open' AND LOWER(b.borough) = 'manhattan'
+ORDER BY l.price ASC LIMIT 10
+```
+
+### SQL 编写规则
+- 用上面的模式直接改参数，不要自己发明新的 SQL 结构
+- 不要用 CASE WHEN 做分类——在 GROUP BY 用原始字段，分类名称在 Python 代码里映射
+- 一次查询最多返回几百行，不要全表扫描
+- 查询返回的结果直接是 `{"columns": [...], "rows": [...], "row_count": N}`
+- 如果查询返回了预期数据，就继续下一步，不要重复查类似的 SQL
 
 ### 注意事项
 - `borough` 在 buildings 表，`price`/`bedrooms` 在 listings 表，跨表查询需要 JOIN

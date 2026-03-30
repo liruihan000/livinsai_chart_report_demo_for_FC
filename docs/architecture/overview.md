@@ -64,7 +64,7 @@ models → config → apartment_client → tools → agent → api → main
 ### 报表专用（Demo 阶段）
 | 方案 | 说明 |
 |----|------|
-| Claude Code Execution 沙盒 | matplotlib 图表 + reportlab/weasyprint PDF，Anthropic 托管，零运维 |
+| LLM Code Execution 沙盒 | matplotlib 图表 + reportlab/weasyprint PDF，Anthropic 托管，零运维 |
 | 后续升级 | antvis/mcp-server-chart（图表）+ Jinja2 + Playwright（PDF），详见 `decisions.md#5` |
 
 ## Observability
@@ -77,7 +77,7 @@ models → config → apartment_client → tools → agent → api → main
 
 - [Anthropic: Building Effective Agents](https://www.anthropic.com/research/building-effective-agents)
 - [Anthropic: Effective Harnesses for Long-Running Agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
-- [INSART: AI-Assisted Report Generation with Claude](https://insart.com/ai-assisted-report-generation-langchain-fastapi-anthropic-claude/)
+- [INSART: AI-Assisted Report Generation with LLM](https://insart.com/ai-assisted-report-generation-langchain-fastapi-anthropic-claude/)
 - [Anthropic Skills for Text-to-SQL](https://medium.com/@shakthiram7787/anthropic-skills-for-text-to-sql-what-i-learned-building-a-skills-anchored-chat-agent-7edf0c5bb188)
 - [Anthropic Official Skills](https://github.com/anthropics/skills)
 - [molefrog/react-pdf Skill](https://github.com/molefrog/skills)

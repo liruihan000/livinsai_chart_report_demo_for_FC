@@ -12,16 +12,16 @@
 
 ## 关于图表/PDF 生成
 
-当前 Demo 使用 **Claude Code Execution 沙盒**（`code_execution_20250825`）生成图表和 PDF：Agent 在 Anthropic 托管的容器中执行 matplotlib 绘图 + reportlab 组装 PDF，通过 Files API 取回文件。这种方式零运维、开发快，但沙盒启动+执行约 5-15 秒，且有额外的 API 费用。
+当前 Demo 使用 **LLM Code Execution 沙盒**（Anthropic 托管容器）生成图表和 PDF：Agent 在沙盒中执行 matplotlib 绘图 + reportlab 组装 PDF，通过 Files API 取回文件。这种方式零运维、开发快，但沙盒启动+执行约 5-15 秒，且有额外的 API 费用。
 
 **生产环境升级方案**（速度提升 10x+，成本大幅降低）：
 
 | 组件 | Demo（当前） | Production（计划） |
 |------|-------------|-------------------|
-| 图表 | Claude 沙盒 + matplotlib（5-15s） | [antvis/mcp-server-chart](https://github.com/antvis/mcp-server-chart) MCP Server，26+ 图表类型，~1-2s，免费 |
-| PDF | Claude 沙盒 + reportlab（同上） | Jinja2 模板 → HTML → Playwright，warm 模式 13ms，无沙盒费用 |
+| 图表 | LLM 沙盒 + matplotlib（5-15s） | [antvis/mcp-server-chart](https://github.com/antvis/mcp-server-chart) MCP Server，26+ 图表类型，~1-2s，免费 |
+| PDF | LLM 沙盒 + reportlab（同上） | Jinja2 模板 → HTML → Playwright，warm 模式 13ms，无沙盒费用 |
 
-升级后无需 Anthropic 沙盒，可切换任意 LLM，详见 `docs/architecture/decisions.md` 第 5 条。
+升级后无需远程沙盒，可切换任意 LLM，详见 `docs/architecture/decisions.md` 第 5 条。
 
 ## 已知限制
 
@@ -35,8 +35,8 @@
 |---|------|
 | 前端 | Next.js 15 + React 19 + Tailwind CSS v4 + @react-pdf-viewer/core |
 | 后端 | FastAPI + LangGraph ReAct Agent + LangChain |
-| LLM | Claude（Anthropic）|
-| 图表/PDF | Demo: Claude Code Execution 沙盒（matplotlib + reportlab）→ Prod: antvis MCP + Playwright |
+| LLM | Anthropic / OpenAI（可切换）|
+| 图表/PDF | Demo: LLM Code Execution 沙盒（matplotlib + reportlab）→ Prod: antvis MCP + Playwright |
 | 数据库 | PostgreSQL + PostGIS（通过 Livins Data Service API）|
 
 ## 快速开始

@@ -50,15 +50,15 @@
 - **减少 API 维护**：只需两个通用 endpoint（`/query/execute` + `/query/schema`），不需要为每种分析需求建 endpoint
 - **LLM SQL 质量**：现代 LLM 对 SQL 生成的准确率已由 Spider/Bird benchmark 验证，4张表的简单 schema 出错率很低
 
-## 5. 图表+PDF：Demo 用 Claude Code Execution，后续升级 antvis + Playwright
+## 5. 图表+PDF：Demo 用 LLM Code Execution，后续升级 antvis + Playwright
 
-**选择（Demo）**：Claude Code Execution 沙盒 — Agent 通过 `code_execution_20250825` 在 Anthropic 托管容器中执行 matplotlib 生成图表 + reportlab/weasyprint 生成 PDF，通过 Files API 取回文件。
+**选择（Demo）**：LLM Code Execution 沙盒 — Agent 通过 `code_execution_20250825` 在 Anthropic 托管容器中执行 matplotlib 生成图表 + reportlab/weasyprint 生成 PDF，通过 Files API 取回文件。
 
 **原因**：
 - 零运维，不需要自建渲染环境
 - `create_chart` 和 `build_report` 两个 Tool 合并为一个 Code Execution 调用
 - Haiku 4.5 也支持，成本可控
-- 限制：仅 Claude API（不支持 Bedrock/Vertex），有额外费用，沙盒启动+执行 ~5-15秒
+- 限制：仅 Anthropic API（不支持 Bedrock/Vertex），有额外费用，沙盒启动+执行 ~5-15秒
 
 **后续升级方案（更快更便宜）**：
 - 图表：[antvis/mcp-server-chart](https://github.com/antvis/mcp-server-chart) — MCP Server，26+ 图表类型（基于 AntV），渲染 ~1-2秒，免费，LLM 无关
@@ -121,7 +121,7 @@
 
 ## 8. SSE 流式推送工具调用步骤
 
-**选择**：`POST /chat/stream` SSE 端点 + LangGraph `astream_events(version="v2")`，实时推送 `tool_start`/`tool_end`/`token`/`done` 事件
+**选择**：`POST /chat/stream` SSE 端点 + LangGraph `astream_events(version="v2")`，实时推送 `thinking`/`tool_start`/`tool_end`/`token`/`done` 事件
 
 **否决方案**：
 - WebSocket：双向通信，但本场景只需服务端→客户端单向推送，SSE 更简单
@@ -135,7 +135,12 @@
 - **无额外依赖**：FastAPI `StreamingResponse` + `text/event-stream`，不需要 sse-starlette 等库
 - **前端解析简单**：`fetch` + `ReadableStream` 解析 SSE，通过回调函数分发事件
 
-**工具步骤生命周期**：仅在流式过程中显示（`activeToolSteps`），完成后清空。历史消息不保留工具步骤，只存最终文本 — 避免 localStorage 膨胀，保持消息结构简洁。
+**Thinking + 工具步骤展示**：
+- 后端将 LLM 中间推理文本缓冲，遇到 `tool_start` 时作为 `thinking` 事件发出，最终回复作为 `token` 事件发出
+- 前端将 thinking 文本附着到对应 ToolStep（`step.thinking` 字段）
+- 流式过程中：thinking + 工具步骤实时展开显示；`execute_code` 步骤额外提示耗时
+- 完成后：thinking + 工具步骤折叠保留在历史消息中（`ChatMessage.toolSteps`），可展开查看完整推理过程
+- 最终回复始终可见，不受折叠影响
 
 ## 9. Protocol-based Client，不用继承
 

@@ -32,15 +32,11 @@ def create_query_tool(client: DataClientProtocol):
             if error:
                 logger.warning("query_database → API error: %s", error)
             else:
-                logger.info(
-                    "query_database → %s rows, columns=%s", row_count, columns
-                )
-                # Log first 3 rows for debugging
                 rows = result.get("rows", [])
-                for i, row in enumerate(rows[:3]):
-                    logger.debug("  row[%d]: %s", i, row)
-                if len(rows) > 3:
-                    logger.debug("  ... (%d more rows)", len(rows) - 3)
+                logger.info(
+                    "query_database → %s rows, columns=%s, row[0]=%s",
+                    row_count, columns, rows[0] if rows else "empty",
+                )
             return json.dumps(result, ensure_ascii=False)
         except Exception as exc:
             logger.exception("query_database → exception: %s", exc)

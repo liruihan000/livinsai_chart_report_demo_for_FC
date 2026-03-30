@@ -15,9 +15,15 @@ _graph_lock = asyncio.Lock()
 _invoke_semaphore: asyncio.Semaphore | None = None
 
 
+import logging
+_logger = logging.getLogger(__name__)
+
 def _build_client(settings: Settings):
+    _logger.info("use_mock_client=%s, data_service_url=%s", settings.use_mock_client, settings.data_service_url)
     if settings.use_mock_client:
+        _logger.info("Using MockDataClient")
         return MockDataClient()
+    _logger.info("Using HttpDataClient → %s", settings.data_service_url)
     return HttpDataClient(settings.data_service_url)
 
 

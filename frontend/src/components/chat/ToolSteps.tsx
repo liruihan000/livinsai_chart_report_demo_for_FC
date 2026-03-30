@@ -113,35 +113,44 @@ export function ToolSteps({ steps }: ToolStepsProps) {
       {expanded && (
         <div className="mt-2 ml-1" style={{ borderLeft: '2px solid var(--border-light)', paddingLeft: '12px' }}>
           {steps.map((step, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-2 py-1.5"
-              style={{ color: step.status === 'done' ? 'var(--text-secondary)' : 'var(--text-primary)' }}
-            >
-              <span className="mt-0.5 shrink-0">
-                {step.status === 'running' ? <Spinner /> : <CheckIcon />}
-              </span>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <ToolIcon name={step.name} />
-                  <span style={{ fontWeight: 500 }}>{step.label}</span>
+            <div key={i} className="py-1.5">
+              {step.thinking && (
+                <div
+                  className="mb-1 text-sm italic"
+                  style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}
+                >
+                  {step.thinking}
                 </div>
-                {step.input && (
-                  <div
-                    className="mt-1 overflow-hidden text-ellipsis"
-                    style={{
-                      fontFamily: 'var(--font-mono), monospace',
-                      fontSize: '12px',
-                      color: 'var(--text-muted)',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-all',
-                      maxHeight: '60px',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {step.input}
+              )}
+              <div
+                className="flex items-start gap-2"
+                style={{ color: step.status === 'done' ? 'var(--text-secondary)' : 'var(--text-primary)' }}
+              >
+                <span className="mt-0.5 shrink-0">
+                  {step.status === 'running' ? <Spinner /> : <CheckIcon />}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <ToolIcon name={step.name} />
+                    <span style={{ fontWeight: 500 }}>{step.label}</span>
                   </div>
-                )}
+                  {step.input && (
+                    <div
+                      className="mt-1 overflow-hidden text-ellipsis"
+                      style={{
+                        fontFamily: 'var(--font-mono), monospace',
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-all',
+                        maxHeight: '60px',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {step.input}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

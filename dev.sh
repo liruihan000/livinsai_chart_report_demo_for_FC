@@ -17,7 +17,7 @@ trap cleanup SIGINT SIGTERM
 
 # Backend
 echo -e "${CYAN}[Backend]${NC} Starting FastAPI on :8000 ..."
-USE_MOCK_CLIENT=true python -m uvicorn livins_report_agent.main:app --reload --host 0.0.0.0 --port 8000 &
+python -m uvicorn livins_report_agent.main:app --reload --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # Frontend

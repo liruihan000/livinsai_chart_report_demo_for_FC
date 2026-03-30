@@ -22,4 +22,4 @@
 - [OpenAI: Harness Engineering](https://openai.com/index/harness-engineering/)
 - [Martin Fowler: Harness Engineering](https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html)
 - [LangChain: Improving Deep Agents](https://blog.langchain.com/improving-deep-agents-with-harness-engineering/)
-- [HumanLayer: Writing a Good CLAUDE.md](https://www.humanlayer.dev/blog/writing-a-good-claude-md)
+- [HumanLayer: Writing a Good Agent Config](https://www.humanlayer.dev/blog/writing-a-good-claude-md)

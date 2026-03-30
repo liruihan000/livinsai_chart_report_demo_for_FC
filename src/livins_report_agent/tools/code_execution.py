@@ -30,8 +30,7 @@ def create_code_execution_tool(api_key: str, model: str = "claude-haiku-4-5-2025
         """
         import anthropic
 
-        logger.info("execute_code ← code (%d chars):\n%.200s%s",
-                     len(code), code, "..." if len(code) > 200 else "")
+        logger.info("execute_code ← code (%d chars):\n%s", len(code), code)
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -58,10 +57,12 @@ def create_code_execution_tool(api_key: str, model: str = "claude-haiku-4-5-2025
             logger.exception("Code execution API call failed")
             return json.dumps({"error": str(exc), "files": []})
 
-        files = []
+        named_files: dict[str, str] = {}   # real filename → file_id
+        unnamed_files: dict[str, str] = {}  # output_N → file_id
         stdout = ""
         stderr = ""
         return_code = -1
+        unnamed_counter = 0
 
         for block in resp.content:
             if block.type == "code_execution_tool_result":
@@ -71,18 +72,18 @@ def create_code_execution_tool(api_key: str, model: str = "claude-haiku-4-5-2025
                 stderr = r.stderr or ""
                 for item in r.content:
                     if item.type == "code_execution_output" and hasattr(item, "file_id"):
-                        # Try to get real filename from metadata
-                        filename = getattr(item, "filename", None) or "output"
-                        if filename == "output":
-                            # Infer from stdout if possible
-                            for ext in [".pdf", ".png", ".jpg", ".csv"]:
-                                if ext in stdout.lower():
-                                    import re
-                                    match = re.search(r'[\w.-]+' + re.escape(ext), stdout)
-                                    if match:
-                                        filename = match.group(0)
-                                        break
-                        files.append({"file_id": item.file_id, "filename": filename})
+                        filename = getattr(item, "filename", None) or ""
+                        if not filename or filename == "output":
+                            unnamed_counter += 1
+                            unnamed_files[f"output_{unnamed_counter}"] = item.file_id
+                        else:
+                            named_files[filename] = item.file_id
+
+        # Prefer named files; only fall back to unnamed if no named files exist
+        if named_files:
+            files = [{"file_id": fid, "filename": fn} for fn, fid in named_files.items()]
+        else:
+            files = [{"file_id": fid, "filename": fn} for fn, fid in unnamed_files.items()]
 
         logger.info(
             "execute_code → rc=%d, files=%d, stdout=%d chars, stderr=%d chars",

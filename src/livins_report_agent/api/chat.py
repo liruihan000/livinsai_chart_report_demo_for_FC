@@ -54,9 +54,14 @@ def _extract_files(messages: list) -> list[dict]:
                 tool_result = json.loads(msg.content)
                 batch = tool_result.get("files", [])
                 if batch:
-                    last_files = [
+                    # Only keep PDF files; charts are intermediate artifacts
+                    pdfs = [
                         {"file_id": f["file_id"], "filename": f["filename"]}
                         for f in batch
+                        if f["filename"].lower().endswith(".pdf")
+                    ]
+                    last_files = pdfs if pdfs else [
+                        {"file_id": batch[-1]["file_id"], "filename": batch[-1]["filename"]}
                     ]
             except (json.JSONDecodeError, KeyError):
                 pass
@@ -152,6 +157,11 @@ async def chat_stream(request: ChatRequest):
                         output_msg = event.get("data", {}).get("output")
                         if isinstance(output_msg, ToolMessage):
                             all_messages.append(output_msg)
+                            # Emit files immediately when execute_code finishes
+                            if name == "execute_code":
+                                files = _extract_files([output_msg])
+                                if files:
+                                    yield _sse_event("files", {"files": files})
                         yield _sse_event("tool_end", {
                             "name": name,
                             "label": _TOOL_LABELS.get(name, name),

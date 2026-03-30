@@ -122,25 +122,30 @@ export function PdfPanel({
                 </button>
               </div>
 
-              {/* Inline preview (collapsible) */}
+              {/* Inline preview (collapsible, vertically resizable) */}
               {isExpanded && (
-                <div className="px-4 pb-3">
+                <div
+                  className="mx-4 mb-3 overflow-hidden"
+                  style={{
+                    resize: 'vertical',
+                    height: '300px',
+                    minHeight: '80px',
+                    maxHeight: '90vh',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                  }}
+                >
                   {isImage ? (
                     <img
                       src={f.blobUrl}
                       alt={f.fileRef.filename}
-                      className="w-full object-contain"
-                      style={{ borderRadius: '6px', maxHeight: '400px' }}
+                      className="h-full w-full object-contain"
                     />
                   ) : (
                     <iframe
                       src={f.blobUrl}
-                      className="w-full"
-                      style={{
-                        height: '400px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--border)',
-                      }}
+                      className="h-full w-full"
+                      style={{ border: 'none' }}
                       title={f.fileRef.filename}
                     />
                   )}

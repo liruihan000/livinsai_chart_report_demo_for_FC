@@ -93,9 +93,9 @@ def create_query_tool(client: DataClientProtocol):
 |------|------|------|------|
 | `load_skill(name)` | skill名称 | Skill内容（Markdown） | 按需加载Schema/规范/指南 |
 | `query_database(sql)` | SELECT SQL | 查询结果 JSON | 所有数据查询（聚合、JOIN、子查询） |
-| Code Execution（沙盒） | Claude 自动生成 Python 代码 | 文件（PNG/PDF） | 图表生成 + PDF 报告组装 |
+| Code Execution（沙盒） | LLM 自动生成 Python 代码 | 文件（PNG/PDF） | 图表生成 + PDF 报告组装 |
 
-> **Demo 阶段**：图表和 PDF 通过 Claude `code_execution_20250825` 沙盒生成（matplotlib + reportlab/weasyprint），通过 Files API 取回。
+> **Demo 阶段**：图表和 PDF 通过 LLM `code_execution_20250825` 沙盒生成（matplotlib + reportlab/weasyprint），通过 Files API 取回。
 >
 > **后续升级**：图表改用 [antvis/mcp-server-chart](https://github.com/antvis/mcp-server-chart)（更快、免费），PDF 改用 Jinja2 + Playwright（warm 模式 13ms）。详见 `decisions.md` 第5条。
 

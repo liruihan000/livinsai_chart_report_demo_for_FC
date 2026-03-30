@@ -66,14 +66,20 @@ Content-Type: application/json → text/event-stream (SSE)
 | event | data | 说明 |
 |-------|------|------|
 | `session` | `{"session_id": "uuid"}` | 连接建立，返回 session_id |
+| `thinking` | `{"content": "让我查询各区域数据..."}` | Agent 工具调用前的推理文本（灰色斜体显示） |
 | `tool_start` | `{"name": "query_database", "label": "查询数据库", "input": "SELECT ..."}` | 工具调用开始 |
 | `tool_end` | `{"name": "query_database", "label": "查询数据库"}` | 工具调用完成 |
-| `token` | `{"content": "根据"}` | LLM 文本流式输出（逐 token） |
+| `token` | `{"content": "根据查询结果..."}` | 最终回复文本（所有工具完成后） |
 | `done` | `{"files": [...]}` | Agent 执行完毕，附带生成的文件列表 |
 | `error` | `{"detail": "..."}` | 执行异常 |
 
+> **thinking vs token**：后端缓冲 LLM 文本，遇到 `tool_start` 时将缓冲区作为 `thinking` 事件发出（中间推理），流结束时将剩余缓冲区作为 `token` 事件发出（最终回复）。
+
 **SSE 格式**：
 ```
+event: thinking
+data: {"content":"让我查询各区域的租房数据："}
+
 event: tool_start
 data: {"name":"query_database","label":"查询数据库","input":"SELECT borough, AVG(price)..."}
 
@@ -81,13 +87,13 @@ event: tool_end
 data: {"name":"query_database","label":"查询数据库"}
 
 event: token
-data: {"content":"根据查询结果"}
+data: {"content":"根据查询结果，曼哈顿的平均租金为..."}
 
 event: done
 data: {"files":[{"file_id":"file_xxx","filename":"report.pdf"}]}
 ```
 
-**实现**：后端使用 LangGraph `astream_events(version="v2")` 捕获 `on_tool_start`/`on_tool_end`/`on_chat_model_stream` 事件，通过 FastAPI `StreamingResponse` 以 `text/event-stream` 格式推送。
+**实现**：后端使用 LangGraph `astream_events(version="v2")` 捕获 `on_chat_model_stream` 文本并缓冲，遇到 `on_tool_start` 时将缓冲区作为 `thinking` 事件发出，流结束时将剩余缓冲区作为 `token`（最终回复）发出。通过 FastAPI `StreamingResponse` 以 `text/event-stream` 格式推送。
 
 ### Report Download
 
@@ -110,7 +116,7 @@ Agent 在 ReAct 循环中调用的 Tools，不直接暴露为 API：
 |------|------|------|
 | `load_skill` | `(name: string) → string` | 按需加载 Skill 内容（Schema/图表/报告规范） |
 | `query_database` | `(sql: string) → json` | 执行只读 SQL，API 层 AST 校验 |
-| Code Execution（沙盒） | Claude 自动生成 Python 代码 | 图表（matplotlib）+ PDF（reportlab/weasyprint），通过 Files API 取回 |
+| Code Execution（沙盒） | LLM 自动生成 Python 代码 | 图表（matplotlib）+ PDF（reportlab/weasyprint），通过 Files API 取回 |
 
 ---
 

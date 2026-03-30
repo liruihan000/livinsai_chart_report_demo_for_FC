@@ -98,9 +98,10 @@ useState + Custom Hooks，无外部状态库
 
 ```typescript
 interface UseChatReturn {
-  messages: ChatMessage[]        // 当前对话消息（已完成的）
+  messages: ChatMessage[]        // 当前对话消息（含 toolSteps 用于历史折叠显示）
   isLoading: boolean             // Agent 是否在响应
   activeToolSteps: ToolStep[]    // 流式过程中的工具步骤（处理完成后清空）
+  thinkingText: string           // 当前 thinking 文本（工具开始后清空）
   streamingContent: string       // 流式过程中的部分文本（处理完成后清空）
   sendMessage: (content: string) => Promise<void>
   clearHistory: () => void       // 清空 localStorage + 重置 state
@@ -111,12 +112,14 @@ interface UseChatReturn {
 **流程**（SSE 流式）：
 1. 组件 mount → `useLocalStorage` 读取历史消息 + session_id
 2. 用户发送消息 → 追加到 messages → POST `/chat/stream` SSE 连接
-3. 收到 `tool_start`/`tool_end` → 更新 `activeToolSteps`（实时显示工具调用进度）
-4. 收到 `token` → 追加到 `streamingContent`（逐字显示 LLM 回复）
-5. 收到 `done` → 将完整文本存入 messages + 写回 localStorage，清空 activeToolSteps/streamingContent
-6. 如果 `done` 含 `files` → 存文件引用 → 触发 PDF 面板展开
+3. 收到 `thinking` → 存入 `pendingThinkingRef` + 显示为 `thinkingText`
+4. 收到 `tool_start` → 将 pending thinking 附着到新 ToolStep（`step.thinking`），清空 `thinkingText`
+5. 收到 `tool_end` → 标记步骤完成
+6. 收到 `token` → 追加到 `streamingContent`（最终回复，清空 thinkingText）
+7. 收到 `done` → 将完整文本 + toolSteps（含 thinking）存入 messages + 写回 localStorage
+8. 如果 `done` 含 `files` → 存文件引用 → 触发 PDF 面板展开
 
-**工具步骤生命周期**：`activeToolSteps` 和 `streamingContent` 仅在流式过程中有值，完成后归零。已完成的消息（`messages[]`）中不保留工具步骤 — 历史消息只存最终文本。
+**数据持久化**：完成后 `toolSteps`（含每步 `thinking`）保存在 `ChatMessage` 中写入 localStorage，历史消息可展开查看完整推理过程。
 
 ### useLocalStorage Hook
 
@@ -244,19 +247,32 @@ async function healthCheck(): Promise<boolean>
 ### MessageBubble / StreamingMessage
 
 - **User 消息**：右对齐，accent 背景，圆角
-- **Agent 消息（已完成）**：左对齐，Markdown 渲染，不含工具步骤
-- **Agent 消息（流式中，StreamingMessage）**：左对齐，实时显示 ToolSteps + 逐字文本
+- **Agent 消息（已完成）**：左对齐，上方折叠的 thinking + 工具步骤（CollapsedSteps），下方 Markdown 渲染的最终回复
+- **Agent 消息（流式中，StreamingMessage）**：左对齐，实时显示 thinking + ToolSteps + 逐字文本
 - **Report 链接**：Agent 消息内嵌 "📄 查看报告" 按钮，点击触发 PDF 面板
 - **SQL 展示**：折叠的 `<details>` 块，JetBrains Mono 渲染
 
-### ToolSteps（流式过程中显示，完成后消失）
+### ToolSteps（流式 + 完成后共用）
 
 - 可折叠步骤列表，点击展开/收起
-- 每个步骤：工具图标（数据库/代码/书本）+ 中文标签 + 输入摘要
-- **进行中**：旋转 spinner + "查询数据库 (1/3)"
-- **全部完成**：绿色勾 + "完成 3 个步骤"
-- 展开后显示每步详情（SQL 语句、代码片段等，monospace 字体）
-- 仅在 `isLoading` 期间渲染，完成后不保留在历史消息中
+- 每个步骤：**thinking 文字**（灰色斜体）+ 工具图标（数据库/代码/书本）+ 中文标签 + 输入摘要
+- **进行中**：旋转 spinner + "查询数据库 (1/3)"；`execute_code` 步骤额外提示 "生成图表/报告，可能需要 10-30 秒"
+- **全部完成**：绿色勾 + "完成 N 个步骤"
+- 展开后显示每步详情：thinking 文字 → 工具名+输入（SQL 语句、代码片段等，monospace 字体）
+
+### CollapsedSteps（完成后的历史消息）
+
+- 默认折叠，显示 "▶ N 个步骤"
+- 展开后与 ToolSteps 相同布局：thinking 文字 + 工具调用详情
+- 数据来源：`ChatMessage.toolSteps`（含每步的 `thinking` 字段），持久化在 localStorage
+
+### Thinking 文字
+
+- **来源**：Agent 每次调用工具前的推理文本，后端通过 SSE `thinking` 事件推送
+- **附着**：每条 thinking 附着到紧随其后的 ToolStep（`step.thinking` 字段）
+- **流式中**：实时显示在 StreamingMessage 顶部（`Thinking` 标签 + 灰色斜体），工具开始后移入步骤列表
+- **完成后**：折叠在步骤列表中，展开可查看每步的推理过程
+- **样式**：`color: var(--text-muted)`, `font-style: italic`, `font-size: 14px`
 
 ### InputBar
 
