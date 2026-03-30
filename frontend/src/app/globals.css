@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+/* ── Editorial Luxury Theme ── */
+:root {
+  /* Base — deep dark */
+  --bg-primary: #0f0f14;
+  --bg-secondary: #1a1a24;
+  --bg-tertiary: #24243a;
+
+  /* Text */
+  --text-primary: #f0ebe3;
+  --text-secondary: #9a9aad;
+  --text-muted: #5a5a6e;
+
+  /* Accent — amber gold */
+  --accent: #c8956c;
+  --accent-hover: #d4a574;
+  --accent-subtle: rgba(200, 149, 108, 0.12);
+
+  /* Semantic */
+  --success: #5cb389;
+  --error: #c75f5f;
+  --border: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='light'] {
+  --bg-primary: #f5f0e8;
+  --bg-secondary: #ebe5db;
+  --bg-tertiary: #ddd6cc;
+
+  --text-primary: #1a1a24;
+  --text-secondary: #5a5a6e;
+  --text-muted: #9a9aad;
+
+  --accent: #a07650;
+  --accent-hover: #b8885e;
+  --accent-subtle: rgba(160, 118, 80, 0.1);
+
+  --border: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Base ── */
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+/* ── Noise texture overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
