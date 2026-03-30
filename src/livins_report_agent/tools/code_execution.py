@@ -72,26 +72,17 @@ def create_code_execution_tool(api_key: str, model: str = "claude-haiku-4-5-2025
                     if item.type == "code_execution_output" and hasattr(item, "file_id"):
                         raw_file_ids.append(item.file_id)
 
-        # Extract filenames from stdout (savefig/doc.build print output)
-        import re
-        known_files = re.findall(r'[\w./-]+\.(?:png|pdf|jpg|csv|svg)', stdout, re.IGNORECASE)
-        # Deduplicate while preserving order
-        seen = set()
-        unique_files = []
-        for f in known_files:
-            basename = f.rsplit("/", 1)[-1]  # strip path
-            if basename not in seen:
-                seen.add(basename)
-                unique_files.append(basename)
+        # Get real filenames from Files API metadata, dedup by filename
+        seen_filenames: dict[str, str] = {}  # filename → file_id (last wins)
+        for fid in raw_file_ids:
+            try:
+                meta = client.beta.files.retrieve_metadata(fid)
+                filename = meta.filename or f"file_{fid[-8:]}"
+            except Exception:
+                filename = f"file_{fid[-8:]}"
+            seen_filenames[filename] = fid
 
-        # Match file_ids to filenames by order; extras get output_N names
-        files = []
-        for i, fid in enumerate(raw_file_ids):
-            if i < len(unique_files):
-                filename = unique_files[i]
-            else:
-                filename = f"output_{i + 1}"
-            files.append({"file_id": fid, "filename": filename})
+        files = [{"file_id": fid, "filename": fn} for fn, fid in seen_filenames.items()]
 
         logger.info(
             "execute_code → rc=%d, files=%d, stdout=%d chars, stderr=%d chars",

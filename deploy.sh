@@ -29,7 +29,7 @@ fi
 # === Build & Push ===
 echo "=== Building livins-report image ==="
 cd "$PROJECT_ROOT"
-docker build -t "$IMAGE" .
+docker build --no-cache -t "$IMAGE" .
 
 echo "=== Pushing to Artifact Registry ==="
 docker push "$IMAGE"

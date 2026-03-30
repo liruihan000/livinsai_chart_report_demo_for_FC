@@ -97,7 +97,7 @@ export function ToolSteps({ steps }: ToolStepsProps) {
             {currentStep ? currentStep.label : '处理中'}
             {currentStep?.name === 'execute_code' && (
               <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
-                {' '}(生成图表/报告，可能需要 10-30 秒)
+                {' '}(生成图表/报告，可能需要 1-2 分钟)
               </span>
             )}
             {currentStep?.name !== 'execute_code' && (
